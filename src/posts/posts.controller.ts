@@ -20,6 +20,19 @@ import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { diskStorage } from 'multer';
 import { extname } from 'path';
 
+// Type for uploaded file
+interface MulterFile {
+  fieldname: string;
+  originalname: string;
+  encoding: string;
+  mimetype: string;
+  size: number;
+  destination: string;
+  filename: string;
+  path: string;
+  buffer: Buffer;
+}
+
 @Controller('posts')
 export class PostsController {
   constructor(private readonly postsService: PostsService) {}
@@ -105,7 +118,7 @@ export class PostsController {
       },
     }),
   )
-  uploadImage(@UploadedFile() file: Express.Multer.File | undefined) {
+  uploadImage(@UploadedFile() file: MulterFile | undefined) {
     if (!file) {
       throw new BadRequestException('No file uploaded');
     }
