@@ -10,6 +10,8 @@ services:
     envVars:
       - key: NODE_ENV
         value: production
+      - key: ENABLE_SYNCHRONIZE
+        value: "true"
       - key: FRONTEND_URL
         sync: false
       - key: JWT_SECRET

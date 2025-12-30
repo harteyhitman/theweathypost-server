@@ -7,9 +7,13 @@ import { AdminModule } from './admin/admin.module';
 import { Admin } from './auth/admin.entity';
 
 const getDatabaseConfig = (): TypeOrmModuleOptions => {
+  // Enable synchronize if explicitly set via env var, or in development
+  // For first deployment, set ENABLE_SYNCHRONIZE=true, then set to false after tables are created
+  const enableSynchronize = process.env.ENABLE_SYNCHRONIZE === 'true' || process.env.NODE_ENV !== 'production';
+  
   const baseConfig = {
     entities: [__dirname + '/**/*.entity{.ts,.js}'],
-    synchronize: process.env.NODE_ENV !== 'production',
+    synchronize: enableSynchronize,
     logging: process.env.NODE_ENV === 'development',
   };
 

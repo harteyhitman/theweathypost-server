@@ -14,7 +14,16 @@ export class AuthService {
     private jwtService: JwtService,
     private emailService: EmailService,
   ) {
-    this.initializeAdmin();
+    // Initialize admin asynchronously, don't block constructor
+    this.initializeAdmin().catch((error) => {
+      console.error('Failed to initialize admin:', error.message);
+      // Retry after a short delay (database might still be initializing)
+      setTimeout(() => {
+        this.initializeAdmin().catch((err) => {
+          console.error('Retry failed to initialize admin:', err.message);
+        });
+      }, 2000);
+    });
   }
 
   async validateUser(username: string, password: string): Promise<any> {
