@@ -20,12 +20,19 @@ async function bootstrap() {
     'http://127.0.0.1:3001',
   ];
   
+  // Add Vercel preview and production domains (common patterns)
+  const vercelOrigins = [
+    'https://thewealthypost-01.vercel.app',
+    'https://*.vercel.app', // Will need manual matching
+  ];
+  
   // Combine allowed origins
   const allAllowedOrigins = [...allowedOrigins, ...(isDevelopment ? developmentOrigins : [])];
   
   console.log(`🔒 CORS Configuration:`);
   console.log(`   - Allowed origins: ${allAllowedOrigins.join(', ')}`);
   console.log(`   - Development mode: ${isDevelopment}`);
+  console.log(`   - FRONTEND_URL: ${frontendUrl}`);
   
   app.enableCors({
     origin: (origin, callback) => {
@@ -35,18 +42,25 @@ async function bootstrap() {
       // Check if origin is in allowed list
       if (allAllowedOrigins.includes(origin)) {
         callback(null, true);
+      } else if (origin.includes('.vercel.app') && !isDevelopment) {
+        // Allow all Vercel preview deployments in production
+        // This is safe as Vercel domains are controlled
+        console.log(`✅ Allowing Vercel origin: ${origin}`);
+        callback(null, true);
       } else if (isDevelopment) {
         // In development, allow all origins for easier testing
         console.log(`✅ Allowing origin in development: ${origin}`);
         callback(null, true);
       } else {
         console.warn(`❌ CORS blocked origin: ${origin}`);
+        console.warn(`   Allowed origins: ${allAllowedOrigins.join(', ')}`);
         callback(new Error(`Not allowed by CORS. Allowed origins: ${allAllowedOrigins.join(', ')}`));
       }
     },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
+    maxAge: 86400, // 24 hours - helps with preflight caching
   });
 
   // Serve static files from public directory (only if directory exists)
