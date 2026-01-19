@@ -21,6 +21,9 @@ import { diskStorage } from 'multer';
 import { extname, join } from 'path';
 import * as fs from 'fs';
 
+// Type alias for multer file
+type MulterFile = Express.Multer.File;
+
 @Controller('posts')
 export class PostsController {
   constructor(private readonly postsService: PostsService) {}
@@ -106,7 +109,7 @@ export class PostsController {
       },
     }),
   )
-  uploadImage(@UploadedFile() file?: Express.Multer.File) {
+  uploadImage(@UploadedFile() file?: MulterFile) {
     if (!file) {
       throw new BadRequestException('No image uploaded');
     }
