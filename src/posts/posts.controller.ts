@@ -18,31 +18,21 @@ import { CreatePostDto } from './dto/create-post.dto';
 import { UpdatePostDto } from './dto/update-post.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { diskStorage } from 'multer';
-import { extname } from 'path';
-
-// Type for uploaded file
-interface MulterFile {
-  fieldname: string;
-  originalname: string;
-  encoding: string;
-  mimetype: string;
-  size: number;
-  destination: string;
-  filename: string;
-  path: string;
-  buffer: Buffer;
-}
+import { extname, join } from 'path';
+import * as fs from 'fs';
 
 @Controller('posts')
 export class PostsController {
   constructor(private readonly postsService: PostsService) {}
 
+  /* ---------------- CREATE POST ---------------- */
   @Post()
   @UseGuards(JwtAuthGuard)
   create(@Body() createPostDto: CreatePostDto) {
     return this.postsService.create(createPostDto);
   }
 
+  /* ---------------- GET POSTS ---------------- */
   @Get()
   findAll() {
     return this.postsService.findAll();
@@ -64,6 +54,7 @@ export class PostsController {
     return this.postsService.findBySlug(slug);
   }
 
+  /* ---------------- UPDATE POST ---------------- */
   @Patch(':id')
   @UseGuards(JwtAuthGuard)
   update(
@@ -73,43 +64,40 @@ export class PostsController {
     return this.postsService.update(id, updatePostDto);
   }
 
+  /* ---------------- DELETE POST ---------------- */
   @Delete(':id')
   @UseGuards(JwtAuthGuard)
   remove(@Param('id', ParseIntPipe) id: number) {
     return this.postsService.remove(id);
   }
 
+  /* ---------------- IMAGE UPLOAD ---------------- */
   @Post('upload-image')
   @UseGuards(JwtAuthGuard)
   @UseInterceptors(
     FileInterceptor('image', {
       storage: diskStorage({
-        destination: (req, file, cb) => {
-          const path = require('path');
-          const fs = require('fs');
-          // Save to Next.js public folder
-          // __dirname in dev: backend/src/posts -> go up 3 levels to root
-          // __dirname in prod: backend/dist/posts -> go up 3 levels to root
-          const rootPath = path.resolve(__dirname, '..', '..', '..');
-          const uploadPath = path.join(rootPath, 'public', 'blog posts images');
-          
-          // Ensure directory exists
+        destination: (_req, _file, cb) => {
+          // ✅ FINAL PATH: /public/blog-post-images
+          const uploadPath = join(process.cwd(), 'public', 'blog-post-images');
+
           if (!fs.existsSync(uploadPath)) {
             fs.mkdirSync(uploadPath, { recursive: true });
           }
-          
+
           cb(null, uploadPath);
         },
-        filename: (req, file, cb) => {
-          const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
-          const ext = extname(file.originalname);
-          const filename = `${file.fieldname}-${uniqueSuffix}${ext}`;
-          cb(null, filename);
+        filename: (_req, file, cb) => {
+          const unique = `${Date.now()}-${Math.round(Math.random() * 1e9)}`;
+          cb(null, `post-${unique}${extname(file.originalname)}`);
         },
       }),
-      fileFilter: (req, file, cb) => {
-        if (!file.mimetype.match(/\/(jpg|jpeg|png|gif|webp)$/)) {
-          return cb(new BadRequestException('Only image files are allowed!'), false);
+      fileFilter: (_req, file, cb) => {
+        if (!file.mimetype.startsWith('image/')) {
+          return cb(
+            new BadRequestException('Only image files are allowed'),
+            false,
+          );
         }
         cb(null, true);
       },
@@ -118,15 +106,14 @@ export class PostsController {
       },
     }),
   )
-  uploadImage(@UploadedFile() file: MulterFile | undefined) {
+  uploadImage(@UploadedFile() file?: Express.Multer.File) {
     if (!file) {
-      throw new BadRequestException('No file uploaded');
+      throw new BadRequestException('No image uploaded');
     }
+
     return {
       filename: file.filename,
-      path: `/blog posts images/${file.filename}`,
-      originalName: file.originalname,
+      path: `/blog-post-images/${file.filename}`, // ✅ MATCHES ACTUAL FOLDER
     };
   }
 }
-

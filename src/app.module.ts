@@ -4,7 +4,6 @@ import { TypeOrmModuleOptions } from '@nestjs/typeorm';
 import { AuthModule } from './auth/auth.module';
 import { PostsModule } from './posts/posts.module';
 import { AdminModule } from './admin/admin.module';
-import { HealthModule } from './health/health.module';
 import { Admin } from './auth/admin.entity';
 
 const getDatabaseConfig = (): TypeOrmModuleOptions => {
@@ -40,7 +39,6 @@ const getDatabaseConfig = (): TypeOrmModuleOptions => {
   imports: [
     TypeOrmModule.forRoot(getDatabaseConfig()),
     TypeOrmModule.forFeature([Admin]),
-    HealthModule,
     AuthModule,
     PostsModule,
     AdminModule,
