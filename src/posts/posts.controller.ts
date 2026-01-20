@@ -13,29 +13,31 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
+import { diskStorage } from 'multer';
+import { extname, join } from 'path';
+import * as fs from 'fs';
+import type { Express } from 'express'; // ✅ FIX #1
+
 import { PostsService } from './posts.service';
 import { CreatePostDto } from './dto/create-post.dto';
 import { UpdatePostDto } from './dto/update-post.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { diskStorage } from 'multer';
-import { extname, join } from 'path';
-import * as fs from 'fs';
 
-// Type alias for multer file
+// ✅ Clean, explicit type alias
 type MulterFile = Express.Multer.File;
 
 @Controller('posts')
 export class PostsController {
   constructor(private readonly postsService: PostsService) {}
 
-  /* ---------------- CREATE POST ---------------- */
+  /* ================= CREATE POST ================= */
   @Post()
   @UseGuards(JwtAuthGuard)
   create(@Body() createPostDto: CreatePostDto) {
     return this.postsService.create(createPostDto);
   }
 
-  /* ---------------- GET POSTS ---------------- */
+  /* ================= GET POSTS ================= */
   @Get()
   findAll() {
     return this.postsService.findAll();
@@ -47,17 +49,18 @@ export class PostsController {
     return this.postsService.findAllAdmin();
   }
 
-  @Get(':id')
-  findOne(@Param('id', ParseIntPipe) id: number) {
-    return this.postsService.findOne(id);
-  }
-
+  /* 🔥 FIX #2: slug route BEFORE :id */
   @Get('slug/:slug')
   findBySlug(@Param('slug') slug: string) {
     return this.postsService.findBySlug(slug);
   }
 
-  /* ---------------- UPDATE POST ---------------- */
+  @Get(':id')
+  findOne(@Param('id', ParseIntPipe) id: number) {
+    return this.postsService.findOne(id);
+  }
+
+  /* ================= UPDATE POST ================= */
   @Patch(':id')
   @UseGuards(JwtAuthGuard)
   update(
@@ -67,21 +70,21 @@ export class PostsController {
     return this.postsService.update(id, updatePostDto);
   }
 
-  /* ---------------- DELETE POST ---------------- */
+  /* ================= DELETE POST ================= */
   @Delete(':id')
   @UseGuards(JwtAuthGuard)
   remove(@Param('id', ParseIntPipe) id: number) {
     return this.postsService.remove(id);
   }
 
-  /* ---------------- IMAGE UPLOAD ---------------- */
+  /* ================= IMAGE UPLOAD ================= */
   @Post('upload-image')
   @UseGuards(JwtAuthGuard)
   @UseInterceptors(
     FileInterceptor('image', {
       storage: diskStorage({
         destination: (_req, _file, cb) => {
-          // ✅ FINAL PATH: /public/blog-post-images
+          // ✅ Absolute + production-safe path
           const uploadPath = join(process.cwd(), 'public', 'blog-post-images');
 
           if (!fs.existsSync(uploadPath)) {
@@ -116,7 +119,7 @@ export class PostsController {
 
     return {
       filename: file.filename,
-      path: `/blog-post-images/${file.filename}`, // ✅ MATCHES ACTUAL FOLDER
+      path: `/blog-post-images/${file.filename}`, // ✅ matches public path
     };
   }
 }
