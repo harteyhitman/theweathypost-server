@@ -13,31 +13,26 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { diskStorage } from 'multer';
-import { extname, join } from 'path';
-import * as fs from 'fs';
-import type { Express } from 'express'; // ✅ FIX #1
-
 import { PostsService } from './posts.service';
 import { CreatePostDto } from './dto/create-post.dto';
 import { UpdatePostDto } from './dto/update-post.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-
-// ✅ Clean, explicit type alias
-type MulterFile = Express.Multer.File;
+import { diskStorage } from 'multer';
+import { extname, join } from 'path';
+import * as fs from 'fs';
 
 @Controller('posts')
 export class PostsController {
   constructor(private readonly postsService: PostsService) {}
 
-  /* ================= CREATE POST ================= */
+  /* ---------------- CREATE POST ---------------- */
   @Post()
   @UseGuards(JwtAuthGuard)
   create(@Body() createPostDto: CreatePostDto) {
     return this.postsService.create(createPostDto);
   }
 
-  /* ================= GET POSTS ================= */
+  /* ---------------- GET POSTS ---------------- */
   @Get()
   findAll() {
     return this.postsService.findAll();
@@ -49,18 +44,17 @@ export class PostsController {
     return this.postsService.findAllAdmin();
   }
 
-  /* 🔥 FIX #2: slug route BEFORE :id */
-  @Get('slug/:slug')
-  findBySlug(@Param('slug') slug: string) {
-    return this.postsService.findBySlug(slug);
-  }
-
   @Get(':id')
   findOne(@Param('id', ParseIntPipe) id: number) {
     return this.postsService.findOne(id);
   }
 
-  /* ================= UPDATE POST ================= */
+  @Get('slug/:slug')
+  findBySlug(@Param('slug') slug: string) {
+    return this.postsService.findBySlug(slug);
+  }
+
+  /* ---------------- UPDATE POST ---------------- */
   @Patch(':id')
   @UseGuards(JwtAuthGuard)
   update(
@@ -70,21 +64,21 @@ export class PostsController {
     return this.postsService.update(id, updatePostDto);
   }
 
-  /* ================= DELETE POST ================= */
+  /* ---------------- DELETE POST ---------------- */
   @Delete(':id')
   @UseGuards(JwtAuthGuard)
   remove(@Param('id', ParseIntPipe) id: number) {
     return this.postsService.remove(id);
   }
 
-  /* ================= IMAGE UPLOAD ================= */
+  /* ---------------- IMAGE UPLOAD ---------------- */
   @Post('upload-image')
   @UseGuards(JwtAuthGuard)
   @UseInterceptors(
     FileInterceptor('image', {
       storage: diskStorage({
         destination: (_req, _file, cb) => {
-          // ✅ Absolute + production-safe path
+          // ✅ /public/blog-post-images
           const uploadPath = join(process.cwd(), 'public', 'blog-post-images');
 
           if (!fs.existsSync(uploadPath)) {
@@ -112,14 +106,14 @@ export class PostsController {
       },
     }),
   )
-  uploadImage(@UploadedFile() file?: MulterFile) {
+  uploadImage(@UploadedFile() file: any) {
     if (!file) {
       throw new BadRequestException('No image uploaded');
     }
 
     return {
       filename: file.filename,
-      path: `/blog-post-images/${file.filename}`, // ✅ matches public path
+      path: `/blog-post-images/${file.filename}`,
     };
   }
 }

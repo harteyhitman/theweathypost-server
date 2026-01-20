@@ -3,14 +3,13 @@ import { ValidationPipe } from '@nestjs/common';
 import { AppModule } from './app.module';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { join } from 'path';
-import * as express from 'express';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
 
   /**
    * -----------------------------------------
-   * CORS CONFIGURATION (Next.js friendly)
+   * ENV + CORS CONFIG (Next.js friendly)
    * -----------------------------------------
    */
   const isDevelopment = process.env.NODE_ENV !== 'production';
@@ -31,7 +30,7 @@ async function bootstrap() {
 
   app.enableCors({
     origin: (origin, callback) => {
-      // Allow SSR, curl, mobile apps
+      // Allow SSR, curl, Postman, mobile apps
       if (!origin) return callback(null, true);
 
       if (allowedOrigins.includes(origin)) {
@@ -55,25 +54,23 @@ async function bootstrap() {
    * -----------------------------------------
    * STATIC FILES (BLOG IMAGES)
    * -----------------------------------------
+   *
    * Folder structure:
    * backend/
    * ├─ public/
    * │  └─ blog-post-images/
+   *
+   * URL:
+   * http://localhost:3001/blog-post-images/image-xxx.png
    */
   const publicPath = join(process.cwd(), 'public');
-  const blogImagesPath = join(publicPath, 'blog-post-images');
 
-  // Serve everything in /public
-  app.use('/public', express.static(publicPath));
+  app.useStaticAssets(publicPath, {
+    prefix: '/',
+  });
 
-  // Explicit blog images route (important)
-  app.use(
-    '/blog-post-images',
-    express.static(blogImagesPath),
-  );
-
-  console.log('🖼️ Static files served from:', publicPath);
-  console.log('🖼️ Blog images served at: /blog-post-images');
+  console.log('🖼️ Static assets served from:', publicPath);
+  console.log('🖼️ Blog images available at: /blog-post-images/*');
 
   /**
    * -----------------------------------------
