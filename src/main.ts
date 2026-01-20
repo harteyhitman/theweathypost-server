@@ -3,15 +3,24 @@ import { ValidationPipe } from '@nestjs/common';
 import { AppModule } from './app.module';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { join } from 'path';
+import { getEnvConfig, Env } from './config/env.config';
 
 async function bootstrap() {
+  // Validate environment variables FIRST - fail fast if invalid
+  try {
+    getEnvConfig();
+  } catch (error) {
+    console.error('❌ Environment validation failed:', error);
+    process.exit(1);
+  }
+
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
 
   /* ============================================================
-     ENV
+     ENV (using validated config)
   ============================================================ */
-  const NODE_ENV = process.env.NODE_ENV || 'development';
-  const PORT = Number(process.env.PORT) || 3001;
+  const NODE_ENV = Env.NODE_ENV;
+  const PORT = Env.PORT;
 
   /* ============================================================
      CORS CONFIG (Vercel + Local + Postman safe)

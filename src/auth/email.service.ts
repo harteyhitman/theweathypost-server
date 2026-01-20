@@ -1,54 +1,174 @@
-import { Injectable } from '@nestjs/common';
-import * as nodemailer from 'nodemailer';
+import { Injectable, InternalServerErrorException, Logger } from '@nestjs/common';
+import * as sgMail from '@sendgrid/mail';
+import { Env } from '../config/env.config';
 
 @Injectable()
 export class EmailService {
-  private transporter;
+  private readonly logger = new Logger(EmailService.name);
+  private readonly fromEmail: string;
 
   constructor() {
-    // Configure email transporter
-    // For development, you can use Gmail or other SMTP services
-    // For production, use services like SendGrid, AWS SES, etc.
-    this.transporter = nodemailer.createTransport({
-      host: process.env.SMTP_HOST || 'smtp.gmail.com',
-      port: parseInt(process.env.SMTP_PORT || '587'),
-      secure: false, // true for 465, false for other ports
-      auth: {
-        user: process.env.SMTP_USER || '',
-        pass: process.env.SMTP_PASS || '',
-      },
-    });
+    // Use validated environment variables
+    const apiKey = Env.SENDGRID_API_KEY;
+    const fromEmail = Env.SENDGRID_FROM;
+
+    // In production, API key should already be validated at startup
+    if (!apiKey) {
+      if (Env.isProduction) {
+        this.logger.error(
+          '❌ SENDGRID_API_KEY is required in production. Application should not have started.',
+        );
+        throw new Error('SENDGRID_API_KEY is required in production');
+      } else {
+        this.logger.warn(
+          '⚠️  SENDGRID_API_KEY not set. Email sending will fail.',
+        );
+      }
+    } else {
+      sgMail.setApiKey(apiKey);
+      this.logger.log('✅ SendGrid API key configured');
+    }
+
+    this.fromEmail = fromEmail;
+    this.logger.log(`✅ SendGrid from email: ${fromEmail}`);
   }
 
-  async sendVerificationCode(email: string, code: string): Promise<void> {
-    const mailOptions = {
-      from: process.env.SMTP_FROM || 'noreply@thewealthypost.com',
+  async sendEmailVerification(
+    email: string,
+    verificationUrl: string,
+  ): Promise<void> {
+    const msg = {
       to: email,
-      subject: 'Admin Account Verification Code',
+      from: this.fromEmail,
+      subject: 'Verify your email address',
       html: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <h2 style="color: #6e61ff;">The Wealthy Post - Admin Verification</h2>
-          <p>Your verification code is:</p>
-          <div style="background: #f5f5f5; padding: 20px; text-align: center; font-size: 32px; font-weight: bold; color: #6e61ff; margin: 20px 0; border-radius: 8px;">
-            ${code}
+        <div style="font-family: Inter, Arial, sans-serif; max-width: 600px; margin: auto; padding: 20px;">
+          <h2 style="color:#6e61ff; margin-bottom: 20px;">Verify your email</h2>
+          <p style="font-size: 16px; color: #333; line-height: 1.6;">
+            Thanks for signing up to <b>The Wealthy Post</b>.
+          </p>
+
+          <div style="margin: 30px 0;">
+            <a href="${verificationUrl}"
+              style="
+                display: inline-block;
+                padding: 12px 24px;
+                background: #6e61ff;
+                color: white;
+                text-decoration: none;
+                border-radius: 6px;
+                font-weight: 600;
+                font-size: 16px;
+              ">
+              Verify Email
+            </a>
           </div>
-          <p>This code will expire in 10 minutes.</p>
-          <p>If you didn't request this code, please ignore this email.</p>
+
+          <p style="margin-top: 20px; font-size: 14px; color: #555;">
+            This link expires in 24 hours.
+          </p>
+
+          <p style="font-size: 12px; color: #999; margin-top: 30px;">
+            If you didn't request this, you can safely ignore this email.
+          </p>
         </div>
       `,
     };
 
     try {
-      await this.transporter.sendMail(mailOptions);
-      console.log(`Verification code sent to ${email}`);
-    } catch (error) {
-      console.error('Error sending email:', error);
-      // In development, log the code instead of failing
-      if (process.env.NODE_ENV !== 'production') {
-        console.log(`\n📧 Verification Code for ${email}: ${code}\n`);
+      await sgMail.send(msg);
+      this.logger.log(`✅ Verification email sent successfully to ${email}`);
+    } catch (error: any) {
+      this.logger.error('❌ SendGrid email sending failed', {
+        error: error.message,
+        code: error.code,
+        response: error.response?.body,
+        email,
+        method: 'sendEmailVerification',
+      });
+
+      // Log full error details in development
+      if (Env.isDevelopment) {
+        this.logger.debug('Full error details:', error);
+        console.log(`🔗 DEV VERIFY LINK: ${verificationUrl}`);
+        return;
       }
-      throw error;
+
+      // In production, throw exception to allow caller to handle
+      throw new InternalServerErrorException(
+        'Unable to send verification email. Please try again later.',
+      );
+    }
+  }
+
+  async sendVerificationCode(
+    email: string,
+    verificationCode: string,
+  ): Promise<void> {
+    const msg = {
+      to: email,
+      from: this.fromEmail,
+      subject: 'Your verification code',
+      html: `
+        <div style="font-family: Inter, Arial, sans-serif; max-width: 600px; margin: auto; padding: 20px;">
+          <h2 style="color:#6e61ff; margin-bottom: 20px;">Verify your email</h2>
+          <p style="font-size: 16px; color: #333; line-height: 1.6;">
+            Thanks for signing up to <b>The Wealthy Post</b>.
+          </p>
+
+          <p style="margin-top: 20px; font-size: 18px; color: #333;">
+            Your verification code is:
+          </p>
+
+          <div style="
+            display: inline-block;
+            margin: 20px 0;
+            padding: 15px 30px;
+            background: #f5f5f5;
+            border-radius: 6px;
+            font-size: 24px;
+            font-weight: bold;
+            color: #6e61ff;
+            letter-spacing: 4px;
+            border: 2px solid #e0e0e0;
+          ">
+            ${verificationCode}
+          </div>
+
+          <p style="margin-top: 20px; font-size: 14px; color: #555;">
+            This code expires in 10 minutes.
+          </p>
+
+          <p style="font-size: 12px; color: #999; margin-top: 30px;">
+            If you didn't request this, you can safely ignore this email.
+          </p>
+        </div>
+      `,
+    };
+
+    try {
+      await sgMail.send(msg);
+      this.logger.log(`✅ Verification code sent successfully to ${email}`);
+    } catch (error: any) {
+      this.logger.error('❌ SendGrid email sending failed', {
+        error: error.message,
+        code: error.code,
+        response: error.response?.body,
+        email,
+        method: 'sendVerificationCode',
+      });
+
+      // Log full error details in development
+      if (process.env.NODE_ENV !== 'production') {
+        this.logger.debug('Full error details:', error);
+        console.log(`🔑 DEV VERIFICATION CODE: ${verificationCode}`);
+        return;
+      }
+
+      // In production, throw exception to allow caller to handle
+      throw new InternalServerErrorException(
+        'Unable to send verification code. Please try again later.',
+      );
     }
   }
 }
-

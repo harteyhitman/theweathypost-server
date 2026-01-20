@@ -19,5 +19,10 @@
     "noFallthroughCasesInSwitch": false,
     "esModuleInterop": true,
     "lib": ["ES2021"]
-  }
+  },
+  "exclude": [
+    "node_modules",
+    "dist",
+    "frontend-api-example"
+  ]
 }
