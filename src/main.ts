@@ -7,62 +7,46 @@ import { join } from 'path';
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
 
-  /**
-   * -----------------------------------------
-   * ENV + CORS CONFIG (Next.js friendly)
-   * -----------------------------------------
-   */
-  const isDevelopment = process.env.NODE_ENV !== 'production';
+  /* ============================================================
+     ENV
+  ============================================================ */
+  const NODE_ENV = process.env.NODE_ENV || 'development';
+  const PORT = Number(process.env.PORT) || 3001;
 
+  /* ============================================================
+     CORS CONFIG (Vercel + Local + Postman safe)
+  ============================================================ */
   const allowedOrigins = [
-    process.env.FRONTEND_URL || 'http://localhost:3000',
-    ...(isDevelopment
-      ? [
-          'http://localhost:3000',
-          'http://localhost:3001',
-          'http://127.0.0.1:3000',
-          'http://127.0.0.1:3001',
-        ]
-      : []),
+    'https://thewealthypost-01.vercel.app', // ✅ Vercel frontend
+    'http://localhost:3000',
+    'http://127.0.0.1:3000',
   ];
 
-  console.log('🔒 CORS enabled for:', allowedOrigins);
+  console.log('🔒 Allowed CORS origins:', allowedOrigins);
 
   app.enableCors({
     origin: (origin, callback) => {
-      // Allow SSR, curl, Postman, mobile apps
-      if (!origin) return callback(null, true);
+      // Allow server-to-server, Postman, curl, SSR
+      if (!origin) {
+        return callback(null, true);
+      }
 
       if (allowedOrigins.includes(origin)) {
         return callback(null, true);
       }
 
-      if (isDevelopment) {
-        console.warn(`⚠️ Dev mode: allowing origin ${origin}`);
-        return callback(null, true);
-      }
-
-      console.error(`❌ Blocked by CORS: ${origin}`);
+      console.error('❌ CORS blocked:', origin);
       return callback(new Error('Not allowed by CORS'));
     },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
+    optionsSuccessStatus: 204,
   });
 
-  /**
-   * -----------------------------------------
-   * STATIC FILES (BLOG IMAGES)
-   * -----------------------------------------
-   *
-   * Folder structure:
-   * backend/
-   * ├─ public/
-   * │  └─ blog-post-images/
-   *
-   * URL:
-   * http://localhost:3001/blog-post-images/image-xxx.png
-   */
+  /* ============================================================
+     STATIC FILES (BLOG IMAGES)
+  ============================================================ */
   const publicPath = join(process.cwd(), 'public');
 
   app.useStaticAssets(publicPath, {
@@ -72,11 +56,9 @@ async function bootstrap() {
   console.log('🖼️ Static assets served from:', publicPath);
   console.log('🖼️ Blog images available at: /blog-post-images/*');
 
-  /**
-   * -----------------------------------------
-   * GLOBAL VALIDATION
-   * -----------------------------------------
-   */
+  /* ============================================================
+     GLOBAL VALIDATION
+  ============================================================ */
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
@@ -85,16 +67,13 @@ async function bootstrap() {
     }),
   );
 
-  /**
-   * -----------------------------------------
-   * START SERVER
-   * -----------------------------------------
-   */
-  const port = Number(process.env.PORT) || 3001;
-  await app.listen(port);
+  /* ============================================================
+     START SERVER
+  ============================================================ */
+  await app.listen(PORT);
 
-  console.log(`🚀 Backend running on http://localhost:${port}`);
-  console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
+  console.log(`🚀 Backend running on port ${PORT}`);
+  console.log(`🌍 Environment: ${NODE_ENV}`);
 }
 
 bootstrap();
