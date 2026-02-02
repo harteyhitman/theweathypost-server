@@ -1,35 +1,75 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, InternalServerErrorException } from '@nestjs/common';
+import * as nodemailer from 'nodemailer';
+import { Transporter } from 'nodemailer';
 
-/**
- * Stub email service. Does not send real emails.
- * Logs verification links/codes for development. Replace with a real
- * provider (e.g. Resend, Postmark, SES) when ready for production emails.
- */
 @Injectable()
 export class EmailService {
-  private readonly logger = new Logger(EmailService.name);
+  private readonly transporter: Transporter;
 
   constructor() {
-    this.logger.log(
-      '📧 Email service running in stub mode (no emails sent). Add a provider later for production.',
-    );
+    this.transporter = nodemailer.createTransport({
+      host: process.env.SMTP_HOST ?? 'smtp.gmail.com',
+      port: Number(process.env.SMTP_PORT ?? 587),
+      secure: false,
+      auth: {
+        user: process.env.SMTP_USER,
+        pass: process.env.SMTP_PASS,
+      },
+    });
   }
 
   async sendEmailVerification(
     email: string,
     verificationUrl: string,
   ): Promise<void> {
-    this.logger.log(`[STUB] Verification email would go to: ${email}`);
-    this.logger.log(`[STUB] Verification URL: ${verificationUrl}`);
-    // No-op: auth flow continues; user can use link from logs in dev
-  }
+    const mailOptions = {
+      from: process.env.SMTP_FROM ?? 'The Wealthy Post <noreply@thewealthypost.com>',
+      to: email,
+      subject: 'Verify your email address',
+      html: `
+        <div style="font-family: Inter, Arial, sans-serif; max-width: 600px; margin: auto;">
+          <h2 style="color:#6e61ff;">Verify your email</h2>
+          <p>Thanks for signing up to <b>The Wealthy Post</b>.</p>
 
-  async sendVerificationCode(
-    email: string,
-    verificationCode: string,
-  ): Promise<void> {
-    this.logger.log(`[STUB] Verification code email would go to: ${email}`);
-    this.logger.log(`[STUB] Code: ${verificationCode}`);
-    // No-op
+          <a href="${verificationUrl}"
+            style="
+              display:inline-block;
+              margin-top:20px;
+              padding:12px 20px;
+              background:#6e61ff;
+              color:white;
+              text-decoration:none;
+              border-radius:6px;
+              font-weight:600;
+            ">
+            Verify Email
+          </a>
+
+          <p style="margin-top:20px;font-size:14px;color:#555;">
+            This link expires in 10 minutes.
+          </p>
+
+          <p style="font-size:12px;color:#999;">
+            If you didn’t request this, you can safely ignore this email.
+          </p>
+        </div>
+      `,
+    };
+
+    try {
+      await this.transporter.sendMail(mailOptions);
+      console.log(`📧 Verification email sent to ${email}`);
+    } catch (error) {
+      console.error('❌ Email sending failed:', error);
+
+      if (process.env.NODE_ENV !== 'production') {
+        console.log(`🔗 DEV VERIFY LINK: ${verificationUrl}`);
+        return;
+      }
+
+      throw new InternalServerErrorException(
+        'Unable to send verification email',
+      );
+    }
   }
 }

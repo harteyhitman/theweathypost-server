@@ -9,7 +9,6 @@
     "target": "ES2021",
     "sourceMap": true,
     "outDir": "./dist",
-    "rootDir": "./src",
     "baseUrl": "./",
     "incremental": true,
     "skipLibCheck": true,
@@ -20,11 +19,5 @@
     "noFallthroughCasesInSwitch": false,
     "esModuleInterop": true,
     "lib": ["ES2021"]
-  },
-  "include": ["src/**/*"],
-  "exclude": [
-    "node_modules",
-    "dist",
-    "frontend-api-example"
-  ]
+  }
 }

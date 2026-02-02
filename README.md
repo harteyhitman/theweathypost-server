@@ -53,8 +53,7 @@ See `.env.example` for all required environment variables.
 - `FRONTEND_URL` - Frontend URL for CORS
 - `JWT_SECRET` - Secret key for JWT tokens
 - `DATABASE_URL` - PostgreSQL connection string (production)
-
-Email sending is currently a stub (verification links/codes are logged). Add an email provider later for production.
+- `SMTP_HOST`, `SMTP_USER`, `SMTP_PASS` - Email configuration
 
 ## API Endpoints
 
