@@ -5,24 +5,12 @@ import { NestExpressApplication } from '@nestjs/platform-express';
 import { join } from 'path';
 
 async function bootstrap() {
-  const NODE_ENV = process.env.NODE_ENV || 'development';
-
-  // Production: require DATABASE_URL to avoid ENOTFOUND and restart loops
-  if (NODE_ENV === 'production') {
-    const databaseUrl = process.env.DATABASE_URL?.trim();
-    if (!databaseUrl) {
-      console.error(
-        'FATAL: DATABASE_URL is required in production. Set DATABASE_URL in your environment (e.g. Render dashboard).',
-      );
-      process.exit(1);
-    }
-  }
-
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
 
   /* ============================================================
      ENV
   ============================================================ */
+  const NODE_ENV = process.env.NODE_ENV || 'development';
   const PORT = Number(process.env.PORT) || 3001;
 
   /* ============================================================

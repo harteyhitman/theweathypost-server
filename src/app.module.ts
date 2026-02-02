@@ -7,32 +7,32 @@ import { AdminModule } from './admin/admin.module';
 import { Admin } from './auth/admin.entity';
 
 const getDatabaseConfig = (): TypeOrmModuleOptions => {
-  const isProduction = process.env.NODE_ENV === 'production';
-  const enableSynchronize =
-    process.env.ENABLE_SYNCHRONIZE === 'true' || !isProduction;
-
+  // Enable synchronize if explicitly set via env var, or in development
+  // For first deployment, set ENABLE_SYNCHRONIZE=true, then set to false after tables are created
+  const enableSynchronize = process.env.ENABLE_SYNCHRONIZE === 'true' || process.env.NODE_ENV !== 'production';
+  
   const baseConfig = {
     entities: [__dirname + '/**/*.entity{.ts,.js}'],
     synchronize: enableSynchronize,
-    logging: !isProduction,
+    logging: process.env.NODE_ENV === 'development',
   };
 
-  // Use DATABASE_URL directly — no host/port/username parsing (avoids ENOTFOUND)
-  const databaseUrl = process.env.DATABASE_URL?.trim();
-  if (databaseUrl) {
+  if (process.env.DATABASE_URL) {
+    // PostgreSQL (production)
     return {
       type: 'postgres',
-      url: databaseUrl,
-      ssl: isProduction ? { rejectUnauthorized: false } : false,
+      url: process.env.DATABASE_URL,
+      ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
+      ...baseConfig,
+    };
+  } else {
+    // SQLite (development)
+    return {
+      type: 'sqlite',
+      database: process.env.DATABASE_PATH || 'blog.db',
       ...baseConfig,
     };
   }
-
-  return {
-    type: 'sqlite',
-    database: process.env.DATABASE_PATH || 'blog.db',
-    ...baseConfig,
-  };
 };
 
 @Module({
