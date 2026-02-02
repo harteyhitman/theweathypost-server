@@ -41,14 +41,6 @@ export const Env = {
     return getEnvConfig().EMAIL_VERIFICATION_SECRET;
   },
 
-  get SENDGRID_API_KEY() {
-    return getEnvConfig().SENDGRID_API_KEY;
-  },
-
-  get SENDGRID_FROM() {
-    return getEnvConfig().SENDGRID_FROM;
-  },
-
   get FRONTEND_URL() {
     return getEnvConfig().FRONTEND_URL;
   },

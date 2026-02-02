@@ -5,11 +5,9 @@ const logger = new Logger('EnvValidation');
 export interface EnvConfig {
   // Required in production
   EMAIL_VERIFICATION_SECRET: string;
-  SENDGRID_API_KEY: string;
-  SENDGRID_FROM: string;
   FRONTEND_URL: string;
   JWT_SECRET: string;
-  
+
   // Optional
   NODE_ENV: string;
   PORT: number;
@@ -43,16 +41,6 @@ export function validateEnvironment(): EnvConfig {
     );
   }
 
-  const sendgridApiKey = process.env.SENDGRID_API_KEY;
-  if (isProduction && !sendgridApiKey) {
-    errors.push('SENDGRID_API_KEY is required in production');
-  }
-
-  const sendgridFrom = process.env.SENDGRID_FROM;
-  if (isProduction && !sendgridFrom) {
-    errors.push('SENDGRID_FROM is required in production');
-  }
-
   const frontendUrl = process.env.FRONTEND_URL;
   if (isProduction && !frontendUrl) {
     errors.push('FRONTEND_URL is required in production');
@@ -61,10 +49,6 @@ export function validateEnvironment(): EnvConfig {
   // Validate format
   if (frontendUrl && !isValidUrl(frontendUrl)) {
     errors.push('FRONTEND_URL must be a valid URL (e.g., https://example.com)');
-  }
-
-  if (sendgridFrom && !isValidEmail(sendgridFrom)) {
-    errors.push('SENDGRID_FROM must be a valid email address');
   }
 
   // Log errors or throw
@@ -83,8 +67,6 @@ export function validateEnvironment(): EnvConfig {
   // Return validated config
   const config: EnvConfig = {
     EMAIL_VERIFICATION_SECRET: emailVerificationSecret || jwtSecret || '',
-    SENDGRID_API_KEY: sendgridApiKey || '',
-    SENDGRID_FROM: sendgridFrom || 'noreply@thewealthypost.com',
     FRONTEND_URL:
       frontendUrl || 'https://thewealthypost-01.vercel.app',
     JWT_SECRET: jwtSecret || '',
@@ -100,12 +82,6 @@ export function validateEnvironment(): EnvConfig {
   logger.log(`   FRONTEND_URL: ${config.FRONTEND_URL}`);
   logger.log(
     `   EMAIL_VERIFICATION_SECRET: ${config.EMAIL_VERIFICATION_SECRET ? '✅ Set' : '❌ Missing'}`,
-  );
-  logger.log(
-    `   SENDGRID_API_KEY: ${config.SENDGRID_API_KEY ? '✅ Set' : '❌ Missing'}`,
-  );
-  logger.log(
-    `   SENDGRID_FROM: ${config.SENDGRID_FROM}`,
   );
 
   return config;
@@ -123,10 +99,3 @@ function isValidUrl(url: string): boolean {
   }
 }
 
-/**
- * Validate email format
- */
-function isValidEmail(email: string): boolean {
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  return emailRegex.test(email);
-}

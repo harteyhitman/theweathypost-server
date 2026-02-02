@@ -37,10 +37,8 @@ Security audit completed for email verification system. All critical environment
   - **After**: "Invalid or expired verification token."
 
 #### `email.service.ts`
-- Uses `Env.SENDGRID_API_KEY` (validated)
-- Uses `Env.SENDGRID_FROM` (validated)
-- **Fails in production** if API key is missing (instead of just warning)
-- Validates at startup
+- Stub implementation (no email provider); logs verification links/codes for dev
+- Add a real provider (e.g. Resend, Postmark, SES) when ready for production emails
 
 ## Required Environment Variables
 
@@ -50,9 +48,7 @@ Security audit completed for email verification system. All critical environment
 |----------|---------|------------|
 | `JWT_SECRET` | JWT token signing | Must not be default value |
 | `EMAIL_VERIFICATION_SECRET` | Email verification tokens | Can fallback to `JWT_SECRET` |
-| `SENDGRID_API_KEY` | SendGrid email API | Required, validated at startup |
-| `SENDGRID_FROM` | Email sender address | Must be valid email format |
-| `FRONTEND_URL` | Frontend URL for email links | Must be valid HTTPS URL |
+| `FRONTEND_URL` | Frontend URL for CORS and links | Must be valid HTTPS URL |
 
 ### Development (Optional - Has defaults)
 
@@ -73,11 +69,6 @@ Security audit completed for email verification system. All critical environment
 
 - **Before**: `EMAIL_VERIFICATION_SECRET` had insecure default fallback
 - **After**: Must be explicitly set or use `JWT_SECRET` (validated)
-
-### ✅ SendGrid Configuration
-
-- **Before**: Only warned if API key missing
-- **After**: Fails to start in production if API key missing
 
 ### ✅ Error Message Security
 
@@ -137,7 +128,6 @@ If validation fails:
 ## Testing Checklist
 
 - [ ] Application fails to start in production without `JWT_SECRET`
-- [ ] Application fails to start in production without `SENDGRID_API_KEY`
 - [ ] Application fails to start in production without `FRONTEND_URL`
 - [ ] Error messages don't leak user existence
 - [ ] No secrets in error responses
@@ -150,12 +140,10 @@ Before deploying to production:
 
 1. ✅ Set all required environment variables
 2. ✅ Generate strong secrets (32+ characters)
-3. ✅ Verify SendGrid API key is valid
-4. ✅ Verify SendGrid email is verified
-5. ✅ Set correct `FRONTEND_URL` (HTTPS)
-6. ✅ Test email sending in staging
-7. ✅ Verify error messages are generic
-8. ✅ Confirm no secrets in logs
+3. ✅ Set correct `FRONTEND_URL` (HTTPS)
+4. ✅ Verify error messages are generic
+5. ✅ Confirm no secrets in logs
+6. (Optional) Add email provider later for production verification emails
 
 ## Files Changed
 

@@ -10,9 +10,7 @@ These variables **MUST** be set in production. The application will fail to star
 |----------|-------------|---------|-------|
 | `JWT_SECRET` | Secret key for JWT token signing | `your-super-secret-key-here` | Must be at least 32 characters, randomly generated |
 | `EMAIL_VERIFICATION_SECRET` | Secret key for email verification tokens | `your-email-verification-secret` | Can fallback to `JWT_SECRET` if not set |
-| `SENDGRID_API_KEY` | SendGrid API key for sending emails | `SG.xxxxxxxxxxxxx` | Get from SendGrid dashboard |
-| `SENDGRID_FROM` | Email address to send from | `noreply@thewealthypost.com` | Must be verified in SendGrid |
-| `FRONTEND_URL` | Frontend application URL | `https://thewealthypost-01.vercel.app` | Used in verification email links |
+| `FRONTEND_URL` | Frontend application URL | `https://thewealthypost-01.vercel.app` | Used for CORS and verification links |
 
 ### Development (Optional)
 
@@ -74,10 +72,6 @@ PORT=3001
 JWT_SECRET=your-super-secret-jwt-key-min-32-chars
 EMAIL_VERIFICATION_SECRET=your-email-verification-secret-key
 
-# Email Configuration (REQUIRED)
-SENDGRID_API_KEY=SG.your-sendgrid-api-key
-SENDGRID_FROM=noreply@thewealthypost.com
-
 # Frontend URL (REQUIRED)
 FRONTEND_URL=https://thewealthypost-01.vercel.app
 
@@ -92,7 +86,6 @@ If validation fails at startup, you'll see:
 ```
 ❌ Environment validation failed:
    JWT_SECRET is required and must not be the default value
-   SENDGRID_API_KEY is required in production
    FRONTEND_URL is required in production
 ```
 
@@ -123,23 +116,11 @@ Set environment variables in Vercel dashboard:
 
 ## Troubleshooting
 
-### "SENDGRID_API_KEY is required in production"
-
-- Ensure the variable is set in your hosting platform
-- Check for typos in variable name
-- Verify the variable is set for the correct environment (production)
-
 ### "FRONTEND_URL must be a valid URL"
 
 - Ensure URL starts with `http://` or `https://`
 - No trailing slashes
 - Valid domain format
-
-### "SENDGRID_FROM must be a valid email address"
-
-- Use format: `name@domain.com`
-- Email must be verified in SendGrid
-- Check for typos
 
 ## Security Checklist
 
@@ -149,5 +130,4 @@ Set environment variables in Vercel dashboard:
 - [ ] `.env` file in `.gitignore`
 - [ ] No secrets in code or logs
 - [ ] Frontend URL is correct HTTPS URL
-- [ ] SendGrid email is verified
 - [ ] Secrets are rotated periodically

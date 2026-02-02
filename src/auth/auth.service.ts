@@ -376,7 +376,7 @@ export class AuthService {
    * - Only allowed for unverified users
    * - Rate limit: max 3 requests per hour per user
    * - Generate a new verification token
-   * - Send email using SendGrid
+   * - Send verification email (stub until email provider is configured)
    */
   async resendVerificationLink(email: string) {
     // Step 1: Validate email format
@@ -431,7 +431,7 @@ export class AuthService {
     const verificationToken = this.generateVerificationToken(admin.id, normalizedEmail);
     const verificationUrl = `${this.frontendUrl}/verify-email?token=${verificationToken}`;
 
-    // Step 7: Send verification email using SendGrid
+    // Step 7: Send verification email
     try {
       await this.emailService.sendEmailVerification(normalizedEmail, verificationUrl);
       
