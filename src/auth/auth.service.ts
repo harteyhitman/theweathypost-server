@@ -446,7 +446,7 @@ export class AuthService {
       console.error('Failed to send verification email:', error);
       
       // In development, log the token for testing
-      if (Env.isDevelopment) {
+      if (process.env.NODE_ENV !== 'production') {
         console.log(
           `\n📧 Verification Token for ${normalizedEmail}: ${verificationToken}\n`,
         );

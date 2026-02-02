@@ -7,7 +7,6 @@ import { AuthController } from './auth.controller';
 import { JwtStrategy } from './jwt.strategy';
 import { EmailModule } from './email.module';
 import { Admin } from './admin.entity';
-import { Env } from '../config/env.config';
 
 @Module({
   imports: [
@@ -15,7 +14,7 @@ import { Env } from '../config/env.config';
     PassportModule,
     EmailModule,
     JwtModule.register({
-      secret: Env.JWT_SECRET,
+      secret: process.env.JWT_SECRET || 'your-secret-key-change-in-production',
       signOptions: { expiresIn: '24h' },
     }),
   ],

@@ -4,36 +4,35 @@ import { TypeOrmModuleOptions } from '@nestjs/typeorm';
 import { AuthModule } from './auth/auth.module';
 import { PostsModule } from './posts/posts.module';
 import { AdminModule } from './admin/admin.module';
-import { HealthModule } from './health/health.module';
 import { Admin } from './auth/admin.entity';
-import { getEnvConfig } from './config/env.config';
 
 const getDatabaseConfig = (): TypeOrmModuleOptions => {
-  const config = getEnvConfig();
-  const enableSynchronize =
-    config.ENABLE_SYNCHRONIZE === true || config.NODE_ENV !== 'production';
+  // Enable synchronize if explicitly set via env var, or in development
+  // For first deployment, set ENABLE_SYNCHRONIZE=true, then set to false after tables are created
+  const enableSynchronize = process.env.ENABLE_SYNCHRONIZE === 'true' || process.env.NODE_ENV !== 'production';
+  
   const baseConfig = {
     entities: [__dirname + '/**/*.entity{.ts,.js}'],
     synchronize: enableSynchronize,
-    logging: config.NODE_ENV === 'development',
+    logging: process.env.NODE_ENV === 'development',
   };
 
-  if (config.DATABASE_URL) {
+  if (process.env.DATABASE_URL) {
+    // PostgreSQL (production)
     return {
       type: 'postgres',
-      url: config.DATABASE_URL,
-      ssl:
-        config.NODE_ENV === 'production'
-          ? { rejectUnauthorized: false }
-          : false,
+      url: process.env.DATABASE_URL,
+      ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
+      ...baseConfig,
+    };
+  } else {
+    // SQLite (development)
+    return {
+      type: 'sqlite',
+      database: process.env.DATABASE_PATH || 'blog.db',
       ...baseConfig,
     };
   }
-  return {
-    type: 'sqlite',
-    database: config.DATABASE_PATH || 'blog.db',
-    ...baseConfig,
-  };
 };
 
 @Module({
@@ -43,7 +42,6 @@ const getDatabaseConfig = (): TypeOrmModuleOptions => {
     AuthModule,
     PostsModule,
     AdminModule,
-    HealthModule,
   ],
 })
 export class AppModule {}

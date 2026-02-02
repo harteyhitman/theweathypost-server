@@ -23,42 +23,34 @@ async function bootstrap() {
   const PORT = Env.PORT;
 
   /* ============================================================
-     CORS CONFIG (uses validated FRONTEND_URL; enabled before listen)
-     - Must allow exact origins so preflight gets Access-Control-Allow-Origin
-     - Never throw in origin callback (error responses would lack CORS headers)
+     CORS CONFIG (Vercel + Local + Postman safe)
   ============================================================ */
-  const frontendUrl = Env.FRONTEND_URL.replace(/\/$/, ''); // no trailing slash
   const allowedOrigins = [
-    frontendUrl,
+    'https://thewealthypost-01.vercel.app', // ✅ Vercel frontend
     'http://localhost:3000',
     'http://127.0.0.1:3000',
   ];
 
-  const isAllowedOrigin = (origin: string | undefined): boolean => {
-    if (!origin) return true; // server-to-server, Postman, curl
-    if (allowedOrigins.includes(origin)) return true;
-    // Vercel preview/production (*.vercel.app)
-    if (origin.endsWith('.vercel.app')) return true;
-    return false;
-  };
-
-  console.log('CORS allowed origins:', allowedOrigins.join(', '), '+ *.vercel.app');
+  console.log('🔒 Allowed CORS origins:', allowedOrigins);
 
   app.enableCors({
     origin: (origin, callback) => {
-      if (isAllowedOrigin(origin)) {
+      // Allow server-to-server, Postman, curl, SSR
+      if (!origin) {
         return callback(null, true);
       }
-      // Do NOT throw here: error responses would not include CORS headers
-      console.warn('CORS blocked origin:', origin);
-      return callback(null, false);
+
+      if (allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+
+      console.error('❌ CORS blocked:', origin);
+      return callback(new Error('Not allowed by CORS'));
     },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
-    exposedHeaders: ['Authorization'],
     optionsSuccessStatus: 204,
-    preflightContinue: false, // respond to OPTIONS with 204 (default, explicit for clarity)
   });
 
   /* ============================================================
