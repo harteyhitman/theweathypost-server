@@ -6,37 +6,35 @@ import { Env } from '../config/env.config';
 export class EmailService {
   private readonly logger = new Logger(EmailService.name);
   private readonly fromEmail: string;
+  /** When false, send methods no-op (SendGrid not configured); app never crashes. */
+  private readonly enabled: boolean;
 
   constructor() {
-    // Use validated environment variables
-    const apiKey = Env.SENDGRID_API_KEY;
-    const fromEmail = Env.SENDGRID_FROM;
+    this.enabled = Env.isEmailConfigured;
+    this.fromEmail = Env.SENDGRID_FROM;
 
-    // In production, API key should already be validated at startup
-    if (!apiKey) {
-      if (Env.isProduction) {
-        this.logger.error(
-          '❌ SENDGRID_API_KEY is required in production. Application should not have started.',
-        );
-        throw new Error('SENDGRID_API_KEY is required in production');
-      } else {
-        this.logger.warn(
-          '⚠️  SENDGRID_API_KEY not set. Email sending will fail.',
-        );
-      }
+    if (!this.enabled) {
+      this.logger.warn(
+        'Email (SendGrid) is not configured; verification emails will be skipped.',
+      );
     } else {
-      sgMail.setApiKey(apiKey);
-      this.logger.log('✅ SendGrid API key configured');
+      sgMail.setApiKey(Env.SENDGRID_API_KEY);
+      this.logger.log('SendGrid configured');
     }
-
-    this.fromEmail = fromEmail;
-    this.logger.log(`✅ SendGrid from email: ${fromEmail}`);
   }
 
   async sendEmailVerification(
     email: string,
     verificationUrl: string,
   ): Promise<void> {
+    if (!this.enabled) {
+      this.logger.debug(`Email not configured; skipping verification email to ${email}`);
+      if (Env.isDevelopment) {
+        this.logger.debug(`DEV verification URL: ${verificationUrl}`);
+      }
+      return;
+    }
+
     const msg = {
       to: email,
       from: this.fromEmail,
@@ -77,24 +75,21 @@ export class EmailService {
 
     try {
       await sgMail.send(msg);
-      this.logger.log(`✅ Verification email sent successfully to ${email}`);
+      this.logger.log(`Verification email sent to ${email}`);
     } catch (error: any) {
-      this.logger.error('❌ SendGrid email sending failed', {
+      this.logger.error('SendGrid send failed', {
         error: error.message,
         code: error.code,
-        response: error.response?.body,
         email,
         method: 'sendEmailVerification',
       });
 
-      // Log full error details in development
       if (Env.isDevelopment) {
         this.logger.debug('Full error details:', error);
-        console.log(`🔗 DEV VERIFY LINK: ${verificationUrl}`);
+        this.logger.debug(`DEV verification URL: ${verificationUrl}`);
         return;
       }
 
-      // In production, throw exception to allow caller to handle
       throw new InternalServerErrorException(
         'Unable to send verification email. Please try again later.',
       );
@@ -105,6 +100,14 @@ export class EmailService {
     email: string,
     verificationCode: string,
   ): Promise<void> {
+    if (!this.enabled) {
+      this.logger.debug(`Email not configured; skipping verification code to ${email}`);
+      if (Env.isDevelopment) {
+        this.logger.debug(`DEV verification code: ${verificationCode}`);
+      }
+      return;
+    }
+
     const msg = {
       to: email,
       from: this.fromEmail,
@@ -148,24 +151,21 @@ export class EmailService {
 
     try {
       await sgMail.send(msg);
-      this.logger.log(`✅ Verification code sent successfully to ${email}`);
+      this.logger.log(`Verification code sent to ${email}`);
     } catch (error: any) {
-      this.logger.error('❌ SendGrid email sending failed', {
+      this.logger.error('SendGrid send failed', {
         error: error.message,
         code: error.code,
-        response: error.response?.body,
         email,
         method: 'sendVerificationCode',
       });
 
-      // Log full error details in development
-      if (process.env.NODE_ENV !== 'production') {
+      if (Env.isDevelopment) {
         this.logger.debug('Full error details:', error);
-        console.log(`🔑 DEV VERIFICATION CODE: ${verificationCode}`);
+        this.logger.debug(`DEV verification code: ${verificationCode}`);
         return;
       }
 
-      // In production, throw exception to allow caller to handle
       throw new InternalServerErrorException(
         'Unable to send verification code. Please try again later.',
       );

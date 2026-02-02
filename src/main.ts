@@ -23,12 +23,13 @@ async function bootstrap() {
   const PORT = Env.PORT;
 
   /* ============================================================
-     CORS CONFIG (Vercel + Local + Postman safe)
+     CORS CONFIG (uses validated FRONTEND_URL; enabled before listen)
      - Must allow exact origins so preflight gets Access-Control-Allow-Origin
      - Never throw in origin callback (error responses would lack CORS headers)
   ============================================================ */
+  const frontendUrl = Env.FRONTEND_URL.replace(/\/$/, ''); // no trailing slash
   const allowedOrigins = [
-    'https://thewealthypost-01.vercel.app',
+    frontendUrl,
     'http://localhost:3000',
     'http://127.0.0.1:3000',
   ];
@@ -41,7 +42,7 @@ async function bootstrap() {
     return false;
   };
 
-  console.log('🔒 Allowed CORS origins:', allowedOrigins, '+ *.vercel.app');
+  console.log('CORS allowed origins:', allowedOrigins.join(', '), '+ *.vercel.app');
 
   app.enableCors({
     origin: (origin, callback) => {

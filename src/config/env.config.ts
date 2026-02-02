@@ -5,15 +5,13 @@
 
 import { validateEnvironment, EnvConfig } from './env.validation';
 
-type EnvConfigType = EnvConfig;
-
-let envConfig: EnvConfigType | null = null;
+let envConfig: EnvConfig | null = null;
 
 /**
  * Get validated environment configuration
- * Should be called once at application startup
+ * Must be called once at application startup (main.ts) before creating the app
  */
-export function getEnvConfig() {
+export function getEnvConfig(): EnvConfig {
   if (!envConfig) {
     envConfig = validateEnvironment();
   }
@@ -21,8 +19,7 @@ export function getEnvConfig() {
 }
 
 /**
- * Get environment variable with validation
- * Use this instead of direct process.env access
+ * Environment accessors. Use these instead of process.env.
  */
 export const Env = {
   get NODE_ENV() {
@@ -37,6 +34,22 @@ export const Env = {
     return getEnvConfig().JWT_SECRET;
   },
 
+  get FRONTEND_URL() {
+    return getEnvConfig().FRONTEND_URL;
+  },
+
+  get DATABASE_URL() {
+    return getEnvConfig().DATABASE_URL;
+  },
+
+  get ENABLE_SYNCHRONIZE() {
+    return getEnvConfig().ENABLE_SYNCHRONIZE;
+  },
+
+  get DATABASE_PATH() {
+    return getEnvConfig().DATABASE_PATH;
+  },
+
   get EMAIL_VERIFICATION_SECRET() {
     return getEnvConfig().EMAIL_VERIFICATION_SECRET;
   },
@@ -49,19 +62,15 @@ export const Env = {
     return getEnvConfig().SENDGRID_FROM;
   },
 
-  get FRONTEND_URL() {
-    return getEnvConfig().FRONTEND_URL;
-  },
-
-  get DATABASE_URL() {
-    return getEnvConfig().DATABASE_URL;
+  get isEmailConfigured() {
+    return getEnvConfig().isEmailConfigured;
   },
 
   get isProduction() {
-    return this.NODE_ENV === 'production';
+    return getEnvConfig().NODE_ENV === 'production';
   },
 
   get isDevelopment() {
-    return this.NODE_ENV === 'development';
+    return getEnvConfig().NODE_ENV === 'development';
   },
 };
