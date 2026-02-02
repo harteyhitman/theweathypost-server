@@ -24,33 +24,40 @@ async function bootstrap() {
 
   /* ============================================================
      CORS CONFIG (Vercel + Local + Postman safe)
+     - Must allow exact origins so preflight gets Access-Control-Allow-Origin
+     - Never throw in origin callback (error responses would lack CORS headers)
   ============================================================ */
   const allowedOrigins = [
-    'https://thewealthypost-01.vercel.app', // ✅ Vercel frontend
+    'https://thewealthypost-01.vercel.app',
     'http://localhost:3000',
     'http://127.0.0.1:3000',
   ];
 
-  console.log('🔒 Allowed CORS origins:', allowedOrigins);
+  const isAllowedOrigin = (origin: string | undefined): boolean => {
+    if (!origin) return true; // server-to-server, Postman, curl
+    if (allowedOrigins.includes(origin)) return true;
+    // Vercel preview/production (*.vercel.app)
+    if (origin.endsWith('.vercel.app')) return true;
+    return false;
+  };
+
+  console.log('🔒 Allowed CORS origins:', allowedOrigins, '+ *.vercel.app');
 
   app.enableCors({
     origin: (origin, callback) => {
-      // Allow server-to-server, Postman, curl, SSR
-      if (!origin) {
+      if (isAllowedOrigin(origin)) {
         return callback(null, true);
       }
-
-      if (allowedOrigins.includes(origin)) {
-        return callback(null, true);
-      }
-
-      console.error('❌ CORS blocked:', origin);
-      return callback(new Error('Not allowed by CORS'));
+      // Do NOT throw here: error responses would not include CORS headers
+      console.warn('CORS blocked origin:', origin);
+      return callback(null, false);
     },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
+    exposedHeaders: ['Authorization'],
     optionsSuccessStatus: 204,
+    preflightContinue: false, // respond to OPTIONS with 204 (default, explicit for clarity)
   });
 
   /* ============================================================
