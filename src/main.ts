@@ -23,29 +23,43 @@ async function bootstrap() {
   const PORT = Env.PORT;
 
   /* ============================================================
-     CORS CONFIG (Vercel + Local + Postman safe)
+     CORS CONFIG (Vercel + previews + Local + Postman safe)
+     Set FRONTEND_URL on Render to your main frontend URL.
   ============================================================ */
+  const frontendUrl = Env.FRONTEND_URL?.replace(/\/$/, '') || '';
   const allowedOrigins = [
-    'https://thewealthypost-01.vercel.app', // ✅ Vercel frontend
+    frontendUrl,
+    'https://thewealthypost-01.vercel.app',
     'http://localhost:3000',
     'http://127.0.0.1:3000',
-  ];
+  ].filter(Boolean);
 
-  console.log('🔒 Allowed CORS origins:', allowedOrigins);
+  // Allow any *.vercel.app preview (same project)
+  const isAllowedOrigin = (origin: string): boolean => {
+    if (allowedOrigins.includes(origin)) return true;
+    try {
+      const u = new URL(origin);
+      if (u.hostname.endsWith('.vercel.app')) return true;
+    } catch {
+      /* ignore */
+    }
+    return false;
+  };
+
+  console.log('🔒 Allowed CORS origins:', [...new Set(allowedOrigins)], '+ *.vercel.app');
 
   app.enableCors({
     origin: (origin, callback) => {
-      // Allow server-to-server, Postman, curl, SSR
+      // Allow requests with no origin (Postman, curl, SSR, same-origin)
       if (!origin) {
         return callback(null, true);
       }
-
-      if (allowedOrigins.includes(origin)) {
+      if (isAllowedOrigin(origin)) {
         return callback(null, true);
       }
-
       console.error('❌ CORS blocked:', origin);
-      return callback(new Error('Not allowed by CORS'));
+      // Reject without throwing so error response can still get CORS headers
+      return callback(null, false);
     },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
