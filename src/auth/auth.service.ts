@@ -96,9 +96,10 @@ export class AuthService {
 
     await this.adminRepository.save(admin);
 
-    // Send verification code via email
+    // Send verification email
+    const verificationUrl = `${process.env.FRONTEND_URL}/verify-email?code=${verificationCode}&email=${email}`
     try {
-      await this.emailService.sendVerificationCode(email, verificationCode);
+      await this.emailService.sendEmailVerification(email, verificationUrl);
     } catch (error) {
       // If email fails, still save admin but log the code
       console.log(`\n📧 Verification Code for ${email}: ${verificationCode}\n`);
@@ -159,9 +160,10 @@ export class AuthService {
     admin.verificationCodeExpiry = verificationCodeExpiry;
     await this.adminRepository.save(admin);
 
-    // Send verification code via email
+    // Send verification email
+    const verificationUrl = `${process.env.FRONTEND_URL}/verify-email?code=${verificationCode}&email=${email}`
     try {
-      await this.emailService.sendVerificationCode(email, verificationCode);
+      await this.emailService.sendEmailVerification(email, verificationUrl);
     } catch (error) {
       console.log(`\n📧 Verification Code for ${email}: ${verificationCode}\n`);
     }
